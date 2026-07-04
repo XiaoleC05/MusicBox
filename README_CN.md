@@ -1,70 +1,74 @@
-# MusicBox — 跨平台音乐聚合
+# MusicBox
 
-> 一次搜索，覆盖所有音乐平台。自动切换音源，畅听无边界。
+跨平台音乐聚合播放器。关联多平台账号，统一搜索，自动切换最优音源。
 
-## 背景
+## Features
 
-不同音乐平台的版权曲库各不相同。同一首歌可能在网易云有版权而在 QQ 音乐没有，用户不得不在多个应用间频繁切换，歌单分散，体验割裂。
+- 同时检索多个音乐平台，聚合搜索结果
+- 当前平台无版权时自动切换备用平台
+- 完整播放器控制：播放、暂停、切歌、进度、音量
+- 一份歌单可包含来自不同平台的歌曲
+- 高音质优先，无损/高码率自动选择
+- 一次配置平台登录凭证，后续自动恢复
 
-MusicBox 将用户的各平台账号关联至统一播放器。搜索时同时检索所有已连接平台，自动选择最优可用音源进行播放。
+## Architecture
 
-## 工作原理
+```text
+Browser (or embedded WebView)
+  ↓
+React Frontend (search + player UI)
+  ↓
+Go Backend (platform adapters, audio streaming)
+  ├── Kugou Adapter
+  ├── NetEase Adapter (planned)
+  └── QQ Music Adapter (planned)
 
-MusicBox 依赖用户已有的合法账号：
+PostgreSQL / SQLite (user config, playlists)
+```
 
-1. 为每个平台配置登录凭证（Cookie）
-2. 搜索时同时查询所有已连接平台
-3. 自动选择最优音源——高音质优先、低延迟优先
-4. 当前平台无法播放时，静默切换至备用平台
+Go 后端以插件架构组织各音乐平台适配器。每个平台为独立模块，处理搜索、音质筛选和播放地址解析。桌面版使用 SQLite 存储用户配置和歌单。
 
-所有播放使用用户自身的账号和会员权益。
+## Requirements
 
-## 功能
+- 桌面版：独立可执行文件，无需运行时依赖
+- 各音乐平台的登录凭证（Cookie）
 
-| 功能 | 说明 |
-|------|------|
-| **跨平台搜索** | 输入歌名或歌手名，同时检索全部已连接平台 |
-| **智能切换** | 平台 A 无版权时，自动切换至平台 B |
-| **完整播放器** | 播放/暂停/切歌/进度条/音量控制 |
-| **跨平台歌单** | 单份歌单可包含来自不同平台的歌曲 |
-| **高音质优先** | 优先选择无损/高码率音源 |
-| **持久登录** | 一次配置，后续自动恢复登录状态 |
+## Installation
 
-## MVP 范围
+### 桌面版
 
-首发支持 **酷狗音乐**。验证可行性后逐步扩展其他平台。
+从 [GitHub Releases](https://github.com/XiaoleC05/MusicBox/releases) 下载 `MusicBox.exe`。
 
-## 技术栈
+### 在线版
 
-| 环境 | 后端 | 数据库 | 前端 |
-|------|------|--------|------|
-| 在线（个人） | Go | PostgreSQL | React |
-| 桌面（exe） | Go | SQLite | 内嵌 React |
+在线版仅供开发者个人使用。
 
-- 插件架构：每个音乐平台独立适配器，便于扩展
-- 在线版仅限开发者个人使用
-- 桌面版面向所有用户
+## Usage
 
-## 使用方式
+### 桌面
 
-### 桌面（推荐）
-
-1. 从 [GitHub Releases](https://github.com/XiaoleC05/MusicBox/releases) 下载 `MusicBox.exe`
-2. 双击运行
-3. 在设置中配置各平台 Cookie
-4. 搜索并播放
+1. 双击 `MusicBox.exe` 启动
+2. 在设置中为各平台填写 Cookie
+3. 搜索歌曲或歌手名称，开始播放
 
 ### 在线
 
-在线版仅限开发者个人使用，请使用桌面版本。
+在线版仅供开发者个人使用，请使用桌面版。
 
-## 法律声明
+## Roadmap
 
-- 仅使用用户已有的合法账户和会员权益
-- 不破解或不绕过 DRM 保护措施
-- 不分发受版权保护的音乐内容
-- 用户需遵守各平台的服务条款
+- [ ] 酷狗音乐适配（MVP）
+- [ ] 网易云音乐适配
+- [ ] QQ 音乐适配
 
-## 开发状态
+## Contributing
 
-概念阶段，尚未开发。
+1. Fork 本仓库
+2. 创建功能分支 (`git checkout -b feature/xxx`)
+3. 提交变更 (`git commit -m 'Add xxx'`)
+4. 推送分支 (`git push origin feature/xxx`)
+5. 提交 Pull Request
+
+## License
+
+This project is licensed under the MIT License.
