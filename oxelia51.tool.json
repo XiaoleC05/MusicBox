@@ -1,0 +1,8 @@
+{
+  "slug": "musicbox",
+  "name": "MusicBox",
+  "description": "音乐聚合播放",
+  "online_capable": true,
+  "github_repo": "XiaoleC05/MusicBox",
+  "release_url": "https://github.com/XiaoleC05/MusicBox/releases"
+}
