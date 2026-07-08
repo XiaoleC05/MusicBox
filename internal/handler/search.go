@@ -5,13 +5,36 @@ import (
 	"strconv"
 
 	"github.com/XiaoleC05/MusicBox/internal/adapter"
+	"github.com/XiaoleC05/MusicBox/internal/config"
+	"github.com/XiaoleC05/MusicBox/internal/db"
 	"github.com/gin-gonic/gin"
 )
 
-var kugouAdapter *adapter.KugouAdapter
+// getKugouAdapterForUser creates a per-request KugouAdapter from the current user's credentials.
+// Returns nil if the user has no kugou credentials configured.
+func getKugouAdapterForUser(c *gin.Context) (*adapter.KugouAdapter, error) {
+	userID, ok := GetUserID(c)
+	if !ok {
+		return nil, nil
+	}
 
-func InitAdapters(kugouCookie string) {
-	kugouAdapter = adapter.NewKugouAdapter(kugouCookie)
+	creds, err := db.NewCredentialsRepository().GetByUser(c.Request.Context(), userID)
+	if err != nil {
+		// No credentials record — adapter unavailable
+		return nil, nil
+	}
+
+	if creds.KugouCookie == "" {
+		return nil, nil
+	}
+
+	key := config.Cfg.EncryptionKey
+	decrypted, err := adapter.Decrypt(creds.KugouCookie, key)
+	if err != nil {
+		return nil, err
+	}
+
+	return adapter.NewKugouAdapter(decrypted), nil
 }
 
 func Search(c *gin.Context) {
@@ -24,8 +47,13 @@ func Search(c *gin.Context) {
 	platform := c.Query("platform")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 
+	kugouAdapter, err := getKugouAdapterForUser(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load credentials"})
+		return
+	}
+
 	var songs []adapter.Song
-	var err error
 
 	if platform == "" {
 		if kugouAdapter != nil && kugouAdapter.IsAvailable() {
@@ -58,8 +86,13 @@ func Play(c *gin.Context) {
 	songID := c.Param("songId")
 	quality := c.DefaultQuery("quality", "standard")
 
+	kugouAdapter, err := getKugouAdapterForUser(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load credentials"})
+		return
+	}
+
 	var playURL string
-	var err error
 
 	if platform == "kugou" {
 		if kugouAdapter == nil || !kugouAdapter.IsAvailable() {

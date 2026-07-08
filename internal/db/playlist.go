@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/XiaoleC05/MusicBox/internal/model"
+	"github.com/jackc/pgx/v5"
 )
 
 type PlaylistRepository struct{}
@@ -65,32 +66,54 @@ func (r *PlaylistRepository) Delete(ctx context.Context, playlistID, userID int6
 	return err
 }
 
+// VerifyPlaylistOwner checks if the playlist belongs to the user.
+func (r *PlaylistRepository) VerifyPlaylistOwner(ctx context.Context, playlistID, userID int64) (bool, error) {
+	var exists bool
+	err := Pool.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM musicbox.playlists WHERE id = $1 AND user_id = $2)`,
+		playlistID, userID,
+	).Scan(&exists)
+	return exists, err
+}
+
 func (r *PlaylistRepository) AddSong(ctx context.Context, playlistID, userID int64, song model.PlaylistSong) error {
+	// Verify ownership first
+	owned, err := r.VerifyPlaylistOwner(ctx, playlistID, userID)
+	if err != nil {
+		return err
+	}
+	if !owned {
+		return pgx.ErrNoRows
+	}
+
 	query := `INSERT INTO musicbox.playlist_songs 
 			  (playlist_id, title, artist, album, duration, platform, platform_song_id, play_url, quality, sort_order) 
 			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 
-	_, err := Pool.Exec(ctx, query,
+	_, err = Pool.Exec(ctx, query,
 		playlistID, song.Title, song.Artist, song.Album, song.Duration,
 		song.Platform, song.PlatformSongID, song.PlayURL, song.Quality, song.SortOrder,
 	)
 	return err
 }
 
-func (r *PlaylistRepository) RemoveSong(ctx context.Context, songID int64) error {
-	query := `DELETE FROM musicbox.playlist_songs WHERE id = $1`
-	_, err := Pool.Exec(ctx, query, songID)
+func (r *PlaylistRepository) RemoveSong(ctx context.Context, songID, userID int64) error {
+	query := `DELETE FROM musicbox.playlist_songs 
+			  WHERE id = $1 
+			  AND playlist_id IN (SELECT id FROM musicbox.playlists WHERE user_id = $2)`
+	_, err := Pool.Exec(ctx, query, songID, userID)
 	return err
 }
 
-func (r *PlaylistRepository) ListSongs(ctx context.Context, playlistID int64) ([]model.PlaylistSong, error) {
-	query := `SELECT id, playlist_id, title, artist, album, duration, platform, 
-			  platform_song_id, play_url, quality, sort_order, created_at 
-			  FROM musicbox.playlist_songs 
-			  WHERE playlist_id = $1 
-			  ORDER BY sort_order, created_at`
+func (r *PlaylistRepository) ListSongs(ctx context.Context, playlistID, userID int64) ([]model.PlaylistSong, error) {
+	query := `SELECT ps.id, ps.playlist_id, ps.title, ps.artist, ps.album, ps.duration, ps.platform, 
+			  ps.platform_song_id, ps.play_url, ps.quality, ps.sort_order, ps.created_at 
+			  FROM musicbox.playlist_songs ps
+			  JOIN musicbox.playlists p ON p.id = ps.playlist_id
+			  WHERE ps.playlist_id = $1 AND p.user_id = $2
+			  ORDER BY ps.sort_order, ps.created_at`
 
-	rows, err := Pool.Query(ctx, query, playlistID)
+	rows, err := Pool.Query(ctx, query, playlistID, userID)
 	if err != nil {
 		return nil, err
 	}

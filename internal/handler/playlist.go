@@ -104,13 +104,18 @@ func (h *PlaylistHandler) AddSong(c *gin.Context) {
 }
 
 func (h *PlaylistHandler) RemoveSong(c *gin.Context) {
+	userID, ok := GetUserID(c)
+	if !ok {
+		return
+	}
+
 	songID, err := strconv.ParseInt(c.Param("songId"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid song ID"})
 		return
 	}
 
-	if err := h.repo.RemoveSong(c.Request.Context(), songID); err != nil {
+	if err := h.repo.RemoveSong(c.Request.Context(), songID, userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -119,13 +124,18 @@ func (h *PlaylistHandler) RemoveSong(c *gin.Context) {
 }
 
 func (h *PlaylistHandler) ListSongs(c *gin.Context) {
+	userID, ok := GetUserID(c)
+	if !ok {
+		return
+	}
+
 	playlistID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid playlist ID"})
 		return
 	}
 
-	songs, err := h.repo.ListSongs(c.Request.Context(), playlistID)
+	songs, err := h.repo.ListSongs(c.Request.Context(), playlistID, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

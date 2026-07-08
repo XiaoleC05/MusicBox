@@ -78,15 +78,6 @@ func (h *CredentialsHandler) Update(c *gin.Context) {
 		return
 	}
 
-	// 重新初始化适配器
-	creds, err := h.repo.GetByUser(c.Request.Context(), userID)
-	if err == nil && creds.KugouCookie != "" {
-		decrypted, err := adapter.Decrypt(creds.KugouCookie, key)
-		if err == nil {
-			InitAdapters(decrypted)
-		}
-	}
-
 	c.JSON(http.StatusOK, gin.H{"message": "credentials updated"})
 }
 
