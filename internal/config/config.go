@@ -24,11 +24,15 @@ func Load() *Config {
 		DatabaseURL:       getEnv("DATABASE_URL", ""),
 		Port:              getEnv("MUSICBOX_PORT", "8003"),
 		OxeliaGatewayMode: getEnvBool("OXELIA_GATEWAY_MODE", false),
-		EncryptionKey:     getEnv("ENCRYPTION_KEY", "default-encryption-key-change-me-in-prod-32b"),
+		EncryptionKey:     getEnv("ENCRYPTION_KEY", ""),
 	}
 
 	if Cfg.DatabaseURL == "" {
 		log.Fatal("DATABASE_URL is required")
+	}
+
+	if Cfg.EncryptionKey == "" {
+		log.Fatal("ENCRYPTION_KEY is required")
 	}
 
 	if len(Cfg.EncryptionKey) < 32 {

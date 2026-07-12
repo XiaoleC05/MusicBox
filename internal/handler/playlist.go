@@ -27,7 +27,7 @@ func (h *PlaylistHandler) List(c *gin.Context) {
 
 	playlists, err := h.repo.ListByUser(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err)
 		return
 	}
 
@@ -50,7 +50,7 @@ func (h *PlaylistHandler) Create(c *gin.Context) {
 
 	playlist, err := h.repo.Create(c.Request.Context(), userID, req.Name)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err)
 		return
 	}
 
@@ -70,7 +70,7 @@ func (h *PlaylistHandler) Delete(c *gin.Context) {
 	}
 
 	if err := h.repo.Delete(c.Request.Context(), playlistID, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err)
 		return
 	}
 
@@ -96,7 +96,7 @@ func (h *PlaylistHandler) AddSong(c *gin.Context) {
 	}
 
 	if err := h.repo.AddSong(c.Request.Context(), playlistID, userID, song); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err)
 		return
 	}
 
@@ -116,7 +116,7 @@ func (h *PlaylistHandler) RemoveSong(c *gin.Context) {
 	}
 
 	if err := h.repo.RemoveSong(c.Request.Context(), songID, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err)
 		return
 	}
 
@@ -137,7 +137,7 @@ func (h *PlaylistHandler) ListSongs(c *gin.Context) {
 
 	songs, err := h.repo.ListSongs(c.Request.Context(), playlistID, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err)
 		return
 	}
 

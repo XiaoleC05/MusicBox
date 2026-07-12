@@ -6,8 +6,25 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
+
+const (
+	maxResponseBodyBytes = 5 * 1024 * 1024
+	kugouAPIBase         = "https://mobilecdn.kugou.com/api/v3"
+)
+
+func mapKugouQuality(quality string) string {
+	switch strings.ToLower(strings.TrimSpace(quality)) {
+	case "lossless":
+		return "999"
+	case "high":
+		return "320"
+	default:
+		return "128"
+	}
+}
 
 type Song struct {
 	ID       string   `json:"id"`
@@ -52,8 +69,8 @@ func (k *KugouAdapter) Search(query string, page int) ([]Song, error) {
 		return nil, fmt.Errorf("kugou adapter not configured")
 	}
 
-	apiURL := fmt.Sprintf("http://mobilecdn.kugou.com/api/v3/search/song?format=json&keyword=%s&page=%d&pagesize=20",
-		url.QueryEscape(query), page)
+	apiURL := fmt.Sprintf("%s/search/song?format=json&keyword=%s&page=%d&pagesize=20",
+		kugouAPIBase, url.QueryEscape(query), page)
 
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
@@ -69,7 +86,7 @@ func (k *KugouAdapter) Search(query string, page int) ([]Song, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodyBytes))
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +134,8 @@ func (k *KugouAdapter) GetPlayURL(songID, quality string) (string, error) {
 		return "", fmt.Errorf("kugou adapter not configured")
 	}
 
-	apiURL := fmt.Sprintf("http://mobilecdn.kugou.com/api/v3/song/info?hash=%s&format=json", songID)
+	qualityParam := mapKugouQuality(quality)
+	apiURL := fmt.Sprintf("%s/song/info?hash=%s&format=json&quality=%s", kugouAPIBase, songID, qualityParam)
 
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
@@ -133,7 +151,7 @@ func (k *KugouAdapter) GetPlayURL(songID, quality string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodyBytes))
 	if err != nil {
 		return "", err
 	}

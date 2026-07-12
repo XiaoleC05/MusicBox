@@ -59,7 +59,7 @@ func Search(c *gin.Context) {
 		if kugouAdapter != nil && kugouAdapter.IsAvailable() {
 			songs, err = kugouAdapter.Search(query, page)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				respondInternalError(c, err)
 				return
 			}
 		}
@@ -70,7 +70,7 @@ func Search(c *gin.Context) {
 		}
 		songs, err = kugouAdapter.Search(query, page)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternalError(c, err)
 			return
 		}
 	} else {
@@ -101,7 +101,7 @@ func Play(c *gin.Context) {
 		}
 		playURL, err = kugouAdapter.GetPlayURL(songID, quality)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternalError(c, err)
 			return
 		}
 	} else {

@@ -4,10 +4,20 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/XiaoleC05/MusicBox/internal/config"
 	"github.com/gin-gonic/gin"
 )
+
+func isAllowedRole(role string) bool {
+	switch strings.ToLower(strings.TrimSpace(role)) {
+	case "user", "admin":
+		return true
+	default:
+		return false
+	}
+}
 
 // AuthMiddleware enforces authentication in production.
 // In gateway mode, requires valid X-User-Id/X-Username/X-Role headers from the gateway.
@@ -19,7 +29,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			username := c.GetHeader("X-Username")
 			role := c.GetHeader("X-Role")
 
-			if userID != "" && username != "" && role != "" {
+			if userID != "" && username != "" && role != "" && isAllowedRole(role) {
 				uid, err := strconv.ParseInt(userID, 10, 64)
 				if err == nil {
 					c.Set("user_id", uid)

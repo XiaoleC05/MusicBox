@@ -74,7 +74,7 @@ func (h *CredentialsHandler) Update(c *gin.Context) {
 	}
 
 	if err := h.repo.Upsert(c.Request.Context(), userID, kugouCookie, kugouToken, neteaseCookie, qqCookie); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err)
 		return
 	}
 
@@ -89,7 +89,7 @@ func (h *CredentialsHandler) Status(c *gin.Context) {
 
 	status, err := h.repo.GetStatus(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, err)
 		return
 	}
 
