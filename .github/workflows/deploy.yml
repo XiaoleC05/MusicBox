@@ -1,0 +1,58 @@
+name: Build and Deploy MusicBox
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Push to release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache-dependency-path: go.sum
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Go test
+        run: go test ./...
+
+      - name: Cross-compile (linux/amd64)
+        run: |
+          mkdir -p release
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o release/musicbox-server ./cmd/server
+          ls -lh release/musicbox-server
+
+      - name: Package release tarball
+        run: tar czf musicbox-release.tar.gz -C release .
+
+      - name: Push tarball to release branch
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git checkout --orphan release-tmp
+          git rm -rf . 2>/dev/null || true
+          ls -lh musicbox-release.tar.gz
+          git add musicbox-release.tar.gz
+          git commit -m "release: ${GITHUB_SHA::7}"
+          git push origin "release-tmp:release" --force
+          echo "tarball pushed to release branch"
